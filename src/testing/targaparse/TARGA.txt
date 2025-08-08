@@ -1,0 +1,73 @@
+Original Hex:
+00 00 0a 00 00 00 00 00  00 00 00 00 02 00 02 00
+18 00 00 ff 00 ff 00 00  00 00 00 ff ff 00 00 00
+ff ff 00 00 00 00 00 00  00 00 54 52 55 45 56 49
+53 49 4f 4e 2d 58 46 49  4c 45 2e 00 
+
+Header:
+00 00 0a 00 00 00 00 00 
+00 00 00 00 02 00 02 00
+18 00
+
+[00]                            - ID Length=0
+[00]                            - Color Map Type=0
+[0a]                            - Image Type=10, run-length encoded true-color image
+[00 00 00 00 00]                - Color Map Specification=0, no color map
+[00 00 00 00 02 00 02 00 18 00] - Image Specification
+
+Image Specification Field (from above):
+
+00 00 00 00 02 00 02 00 
+18 00
+
+[00 00] - X-origin=0  (lower-left corner)
+[00 00] - Y-origin=0
+[02 00] - Image Width=2,  2 pixels tall
+[02 00] - Image Height=2, 2 pixels wide
+[18]    - Pixel Depth=24, 24-bits per pixel, or 3 bytes
+[00]    - Image Descriptor Byte=0, which checks out since Pixel Depth is 24
+
+Image Data (starting from the lower-left corner):
+
+00 ff 00 ff 00 00  00 00 00 ff ff 00 00 00 ff ff 
+
+Pixel data is stored in "packets" consisting of a 1-byte header followed by x bytes of BGR color data.
+We know from the pixel depth field that the color data in each packet is 3 bytes long --- or 1 byte each for blue, green, and red respectively. 
+
+Dividing the rest into packets gives us...
+
+[00 ff 00 ff] [00 00 00 00] [00 ff ff 00] [00 00 ff ff] 
+
+[00 00 00 00 00 00  00 00 54 52 55 45 56 49
+53 49 4f 4e 2d 58 46 49  4c 45 2e 00]
+
+So, the first packet is [00 ff 00 ff], which can be further split into:
+[00] - Packet Header=0, indicating the number of horizontal pixels minus 1 that this packet defines. 0 means this packet represents 1 pixel
+[ff] - Red Value=255
+[00] - Green Value=0
+[ff] - Blue Value=255
+
+BGR(255,0,255) is magenta, the bottom left pixel 
+
+For the rest of the packets...
+
+[00 00 00 00] - BGR(0,0,0), black, the bottom right pixel
+[00 ff ff 00] - BGR(255,255,0), yellow, top right
+[00 00 ff ff] - BGR(0,255,255), cyan, top left
+
+following this logic, changing the color data to:
+[00 ff 00 00] [00 00 00 00] [00 00 ff 00] [00 00 00 ff] 
+would create the image below...
+
+Last 26 bytes is the footer, which just says "TRUEVISION-XFILE":
+
+00 00 00 00 00 00 00 00 54 52 55 45 56 49
+53 49 4f 4e 2d 58 46 49  4c 45 2e 00 
+
+Dealing with run length header:
+
+Leftmost bit defines whether the packet is run length or raw; if the packet is run length,
+then the other 7 bytes will determine how many pixels the BGR value is repeated minus 1, up to 128 times.  
+
+
+
