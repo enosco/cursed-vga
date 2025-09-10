@@ -4,6 +4,9 @@
 #include <unistd.h>
 #include <sys/time.h>
 
+#define CHARS_PER_PIXEL 2
+#define COLORSCALE (1000.0 / 255.0)
+
 typedef struct __attribute__((packed)) {
     char   id_len;
     char   color_map_type;
@@ -19,35 +22,136 @@ typedef struct __attribute__((packed)) {
     char   img_desc_byte;
 } TARGA_HEADER;
 
-// TODO: Need to make additional structs for different pixel depths
-
-typedef struct __attribute__((packed)) {
-    unsigned char header;
-    unsigned char blue_val;
-    unsigned char green_val;
-    unsigned char red_val;
-} PIXEL_PACKET;
-
-
 typedef struct __attribute__((packed)) {
     uint8_t blue_val;
     uint8_t green_val;
     uint8_t red_val;
 } PIXEL;
 
+typedef struct {
+    enum {RUNLEN, RAW} type;
+    int count; // either repetition count or number of pixels in packet depending on type
+} PACKET_INFO;
+
 typedef struct __attribute__((packed)) {
     int repetition_count;
     PIXEL color_data;
 } RUN_LEN_PACKET_DATA;
 
+void setup_ncurses(WINDOW* win, int height, int width) {
+
+}
+
+// Initializes color with given rgb values and
+// returns corresponding color pair
+int initialize_color(int r, int g, int b) {
+    static int color_pair_num = 2;
+    static int color_num = 8;
+    
+    if (color_num > COLORS) {
+	return -1;
+    }
+
+    if (color_pair_num > COLOR_PAIRS) {
+	return -2;
+    }
+    
+    init_color(color_num,
+	       r * COLORSCALE,
+	       g * COLORSCALE,
+	       b * COLORSCALE);
+    
+    init_pair(color_pair_num, COLOR_BLACK, color_num);
+
+    int pair_to_return = color_pair_num;
+    color_num++;
+    color_pair_num++;
+
+    return pair_to_return;
+}
+
+/* changes the next attributes of next 2 pixels to
+ * color at color_pair and updates the cursor
+ *
+ * returns true once the last pixel of the image has been placed
+ */
+int set_color_and_update_cursor(WINDOW* img_win, int color_pair, int pixels_affected) {
+    int x_pos, y_pos, x_max, y_max;
+    getyx(img_win, y_pos, x_pos);
+    getmaxyx(img_win, y_max, x_max);
+
+    int cells_affected = pixels_affected * CHARS_PER_PIXEL;
+///    wchgat(img_win, CHARS_PER_PIXEL, 0, color_pair, NULL);
+
+    // TODO: might need to handle case where run-length packet
+    // overflows across line
+    wchgat(img_win, cells_affected, 0, color_pair, NULL);
+    usleep(10000);
+    // adjust cursor and move to next row if x_pos exceeds image width    
+    x_pos += cells_affected;
+    if (x_pos >= x_max) {
+	x_pos = 0;
+	y_pos--;		
+    }
+
+    if (y_pos < 0) {
+	return true;
+    } else {           
+	wmove(img_win, y_pos, x_pos);
+	return false;
+    }
+    // FIXME: need to adjust return value so that the loop stops correctly
+}
+
+int display_run_length_packet(WINDOW* img_win, FILE* file, int repetition_count) {
+    PIXEL pixel;
+    fread(&pixel, sizeof(uint8_t), sizeof(PIXEL), file);    
+    int pair_num = initialize_color(pixel.red_val,
+				    pixel.green_val,
+				    pixel.blue_val);
+
+    int8_t ret = set_color_and_update_cursor(img_win, pair_num, repetition_count);
+    wrefresh(img_win);
+    return ret;
+}
+
+int display_raw_rgb_packet(WINDOW* img_win, FILE *file, int pixel_count) {
+    int ret = 0;
+    for (; pixel_count > 0; pixel_count--) {
+	PIXEL pixel;
+	fread(&pixel, sizeof(uint8_t), sizeof(PIXEL), file);
+
+	int pair_num = initialize_color(pixel.red_val,
+					pixel.green_val,
+					pixel.blue_val);
+	
+	ret = set_color_and_update_cursor(img_win, pair_num, 1);
+	usleep(5000);
+	wrefresh(img_win);	
+    }
+    return ret;
+}
+
+int display_image_data(WINDOW* img_win, FILE* file, PACKET_INFO packet_info) {
+    switch (packet_info.type) {
+	case RUNLEN:
+	    return display_run_length_packet(img_win, file, packet_info.count);
+	case RAW:
+	    return display_raw_rgb_packet(img_win, file, packet_info.count);
+    }
+}
+
+
 int main(int argc, char* argv[]) {
     const char* filename = argv[1];
     
-    FILE *file = fopen(filename, "r");
+    FILE* file = fopen(filename, "r");
 
+    /***** Startup Functionality *****/
+    
     TARGA_HEADER tga_header;
     fread(&tga_header, sizeof(char), sizeof(TARGA_HEADER), file);
-
+    
     printf("Image Name:\t%s\nWidth:\t\t%dpx\nHeight:\t\t%dpx\n"
 	   "Image Type:\t%d\nPixel Depth:\t%d-bit\n",
 	   filename,
@@ -84,15 +188,14 @@ int main(int argc, char* argv[]) {
     printf("Press enter to continue...");
     getchar();
 
+
+    /***** Initialize NCURSES *****/
+    
     initscr();
     curs_set(0);
     start_color();
-    
-    int PAIR_NUM = 1;
-    int PIXEL_COLOR = 8; // start at 8 so default colors are not overwritten
-    
-    init_color(PIXEL_COLOR, 1000,1000,1000);
-    init_pair(PAIR_NUM, COLOR_WHITE, PIXEL_COLOR);
+
+    init_pair(1, COLOR_WHITE, COLOR_WHITE);
     refresh();
     
     WINDOW *img_win = newwin(tga_header.height, tga_header.width << 1, 0, 0);
@@ -100,106 +203,44 @@ int main(int argc, char* argv[]) {
     scrollok(log_win, 1);
     
     wbkgd(img_win, ' ' | A_REVERSE);
+    wrefresh(img_win);
 
-    const double COLORSCALE = 1000.0 / 255.0;
-    const int WAIT_TIME_USEC = 1280000 / (tga_header.height * tga_header.width);
+    /***** Begin Output *****/
     
-    int x_pos = 0;
-    int y_pos = tga_header.height-1;
 
-    int log = 0;
- 
-    while (y_pos >= 0) {
+    // image data begins in the bottom left corner, move the cursor to match
+    wmove(img_win, tga_header.height-1, 0);
+       
+    int8_t finished_flag = 0;
+    while (!finished_flag) {
+	uint8_t header_byte;
+	fread(&header_byte, sizeof(uint8_t), sizeof(uint8_t), file);
+
+	PACKET_INFO pkt_info;	
 	
-	// read in header (1 byte)
-	uint8_t header;
-	fread(&header, sizeof(uint8_t), sizeof(uint8_t), file);
-
-	if (header >> 7) { // if true, found a run-length packet
-
-	    wprintw(log_win, "Found Run-Length Packet, Rep. Count: %d\n", (header ^ 0x80) + 1);
+	if (header_byte >> 7) {
+	    wprintw(log_win, "Found Run-Length Packet, Rep. Count: %d\n",
+		    (header_byte ^ 0x80) + 1);
+	    
 	    wrefresh(log_win);
-	    PIXEL pixel_data;
 	    
-	    fread(&pixel_data, sizeof(uint8_t), sizeof(PIXEL), file);
-
-	    // repetition count is the header's 7 rightmost  bits plus 1
-	    for (int rep_c = (header ^ 0x80) + 1; rep_c > 0; rep_c--) {
-		wprintw(log_win, "Pixels Left: %d\n", rep_c);
-		wrefresh(log_win);
-
-		init_color(PIXEL_COLOR,
-			   pixel_data.red_val * COLORSCALE,
-			   pixel_data.green_val * COLORSCALE,
-			   pixel_data.blue_val * COLORSCALE);
-	    
-		init_pair(PAIR_NUM, COLOR_BLACK, PIXEL_COLOR);
-		
-			    
-		mvwchgat(img_win, y_pos, x_pos, 2, 0, PAIR_NUM, NULL);
-		x_pos+=2;
-		
-		// move to next row if x_pos exceeds image width
-		if (x_pos >= (tga_header.width << 1)) {
-		    x_pos = 0;
-		    y_pos--;		
-		}
-
-		wrefresh(img_win);
-		usleep(WAIT_TIME_USEC);
-	    }
-	    
-	    PAIR_NUM++;
-	    PIXEL_COLOR++;	  
-
-	} else { // otherwise, raw rgb packet
-	    wprintw(log_win, "Found Raw RGB Packet, Rep. Count: %d\n", (header + 1));
+	    pkt_info = (PACKET_INFO) {
+		.type = RUNLEN,
+		.count = (header_byte ^ 0x80) + 1
+	    };      
+	} else {
+	    wprintw(log_win, "Found Raw RGB Packet, Pixel Count: %d\n", (header_byte + 1));
 	    wrefresh(log_win);
 
-	    int pixels_in_packet = header + 1;
-
-	    PIXEL pixel_data;
-	    for (; pixels_in_packet > 0; pixels_in_packet--) {
-		fread(&pixel_data, sizeof(uint8_t), sizeof(PIXEL), file);
-
-		init_color(PIXEL_COLOR,
-			   pixel_data.red_val * COLORSCALE,
-			   pixel_data.green_val * COLORSCALE,
-			   pixel_data.blue_val * COLORSCALE);
-	    
-		init_pair(PAIR_NUM, COLOR_BLACK, PIXEL_COLOR);
-		
-			    
-		mvwchgat(img_win, y_pos, x_pos, 2, 0, PAIR_NUM, NULL);
-		x_pos+=2;
-		
-		// move to next row if x_pos exceeds image width
-		if (x_pos >= (tga_header.width << 1)) {
-		    x_pos = 0;
-		    y_pos--;		
-		}
-
-		wrefresh(img_win);
-		usleep(WAIT_TIME_USEC);
-	       
-		PAIR_NUM++;
-		PIXEL_COLOR++;	  
-	    }	   	    
+	    pkt_info = (PACKET_INFO) {
+		.type = RAW,
+		.count = header_byte + 1
+	    };
 	}
-	
-	if (PAIR_NUM > 255) {
-	    wprintw(log_win, "ERR: COLOR_PAIR OVERFLOW");
-	    wrefresh(log_win);	   
-	    break;
-	}
-		
-	if (PIXEL_COLOR > 255) {
-	    wprintw(log_win, "ERR: PIXEL COLOR OVERFLOW");
-	    wrefresh(log_win);
-	    break;
-	}			
+
+	finished_flag = display_image_data(img_win, file, pkt_info);
     }
-
+    
     fclose(file);
     
     getchar();
