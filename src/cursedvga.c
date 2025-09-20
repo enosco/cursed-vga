@@ -38,96 +38,87 @@ typedef struct __attribute__((packed)) {
     PIXEL color_data;
 } RUN_LEN_PACKET_DATA;
 
+int is_gray(int r, int g, int b) {
+    return -1;
+}
+
 int get_nearest_color_pair(PIXEL *palette, int red, int green, int blue, WINDOW* log_win) {
+    int palette_index = 0;
+    int ceil, floor = 0;
+    
+//    int red_ceil, red_floor = 0;
+    do {
+	floor = palette[palette_index].red_val;	
+	ceil = palette[palette_index + 40].red_val;
+	palette_index += 40; // 40 cells per table
+    } while (ceil < red && palette_index < (5 * 40));
+    
+//    int ceil_diff = red_ceil - red;
+//    int floor_diff = red - red_floor;
+    
+//    palette_index = (floor_diff < ceil_diff) ? palette_index - 40 : palette_index;
+    palette_index = ((ceil - red) < (red - floor))
+		      ? palette_index - 40
+		      : palette_index;
 
-    // TODO: FIXME FIXME FIXME FIXME      
-    // index in the color palette array corresponds to its pair num
+    ceil = 0;
+    floor = 0;    
+    do {
+	floor = palette[palette_index].green_val;	
+	ceil = palette[palette_index + 6].green_val;
+	palette_index += 5; // 5 cells per row
+    } while (ceil < green && palette_index < (5 * 40));
+
+    palette_index = ((ceil - green) < (green - floor))
+		      ? palette_index - 6
+		      : palette_index;
+
+    ceil = 0;
+    floor = 0;    
+    do {
+	floor = palette[palette_index].blue_val;
+	ceil = palette[palette_index + 1].blue_val;
+	palette_index++;; 
+    } while (ceil < blue && palette_index < (5 * 40));
+
+    palette_index = ((ceil - blue) < (blue - floor))
+		      ? palette_index - 1
+		      : palette_index;
+
+		      
     /*
-    wprintw(log_win, "Finding nearest color for r:%d g:%d b:%d\n", red, green, blue);  
-    
-    int nearest_pair = 0;
-    int red_index = 0;
-
-    if (red < (95 >> 1)) {
-	nearest_red = 0;
-    } else {
-	for (; red_index < 240; red_index += 40) {
-	    int existing_red = palette[red_index].red_val;
-	    wprintw(log_win,"Testing against red val: %d\n", existing_red);
-	    
-	    if (red <= existing_red) {
-		nearest_red = existing_red;
-		break;
-	    }	
-	}
-    }
-	
-    wprintw(log_win, "Nearest red located at index: %d, value: %d\n", red_index, nearest_red);
-    
-    int green_index = red_index;
-
-    if (green < (95 >> 1)) {
-	nearest_green = 0;
-    } else {   
-	for (; green_index < 240; green_index += 5) {
-	    int existing_green = palette[green_index].green_val;
-	    wprintw(log_win, "Testing against green val: %d\n", existing_green);
-	    
-	    if (green <= existing_green) {
-		nearest_green = existing_green;
-		break;
-	    }
-	}
-    }
-    
-//    printw("Nearest green located at index: %d, value: %d\n", green_index, nearest_green);    
-    
-    int blue_index = green_index;
-    if (blue < (95 >> 1)) {
-	nearest_blue = 0;
-    } else {   
-	for (; blue_index < 240; blue_index++) {
-	    int existing_blue = palette[blue_index].blue_val;
-	    wprintw(log_win,"Testing against blue val: %d\n", existing_blue);
-	    
-	    if (blue <= existing_blue) {
-		nearest_blue = existing_blue;
-		break;
-	    }
-	}
-    }
-    
-//    printw("Nearest blue located at index: %d, value: %d\n", blue_index, nearest_blue);
-    wprintw(log_win,"Nearest color at index: %d, r: %d, g: %d, b: %d\n", blue_index, nearest_red, nearest_green, nearest_blue);
-    // TODO: Make this intelligible, please
-//    refresh();
-    return blue_index;
+    printf("ceil: %d, floor: %d, for red val: %d\n\r", red_ceil, red_floor, red);
+    printf("ceil diff: %d, floor diff: %d\n\r", ceil_diff, floor_diff);
+    printf("closest: %d at idx %d", palette[palette_index].red_val, palette_index);
     */
-    
-    for (int pair_num = 1; pair_num < 64; pair_num++) {
-	short fg, bg, r, g, b;
-	pair_content(pair_num, &fg, &bg);
-	color_content(bg, &r, &g, &b);
+        
+    return palette_index;
+}
 
-	r = r * COLORSCALE;
-	g = g * COLORSCALE;
-	b = b * COLORSCALE;
-	
-	if (red <= r) {
-	    refresh();
-	    return pair_num;
-	}
+int compare_rgb(const void* a, const void* b) {
+    PIXEL* p1 = (PIXEL*) a;
+    PIXEL* p2 = (PIXEL*) b;
+    
+    int red_diff = p1->red_val - p2->red_val;
+    if (red_diff != 0) {
+	return red_diff;
     }
-    return -1;    
+    
+    int green_diff = p1->green_val - p2->green_val;
+    if (green_diff != 0) {
+	return green_diff;
+    }
+
+    return p1->blue_val - p2->blue_val;
 }
 
 void generate_palette(PIXEL *palette) {
     int color_num = 0;
-    int pair_num = 1;
+    int pair_num = 0;
         
     int red_inc = 91;
     for (int red = 0; red < 256; red += red_inc) {
-        int green_inc = 90;
+        int green_inc = 93;
         for (int green = 0; green < 256; green += green_inc) {
             int blue_inc = 93;
             for (int blue = 0; blue < 256; blue += blue_inc) {
@@ -137,35 +128,44 @@ void generate_palette(PIXEL *palette) {
                     .blue_val = blue
                 };
 
-		init_color(color_num,
-			   red * COLORSCALE,
-			   green * COLORSCALE,
-			   blue * COLORSCALE);	   
-
-//		printw("B:%f\n", blue);
-                if (blue != 0) {  
-//		    blue_inc = (255 - blue_inc) / (blue_weight-2);
+		if (blue != 0) {  
 		    blue_inc = 54;		    
                 }
 
             }
             if (green != 0) {
-                //green_inc = (255 - green_inc) / (green_weight-2);
-		green_inc = 33;
+		green_inc = 27;
             }
         }
         
         if (red != 0) {
-            //red_inc = (255 - red_inc) / (red_weight-2);
 	    red_inc = 41;
         }
     }
+
+    for (int i = 15; i <= 240; i += 15) {
+	palette[color_num++] = (PIXEL) {
+	    .red_val = i,
+	    .green_val = i,
+	    .blue_val = i
+	};	
+    }
+
+    //qsort(palette, 256, sizeof(PIXEL), compare_rgb);
+    
     int c = 0;
     for (int i = 0; i < 256; i++) {
+	init_color(i,
+		   palette[i].red_val * COLORSCALE,
+		   palette[i].green_val * COLORSCALE,
+		   palette[i].blue_val * COLORSCALE);	          
+	
 	init_pair(i, COLOR_BLACK, i);
+
 	attron(COLOR_PAIR(i));
 	printw("%02x%02x%02x ", palette[i].red_val, palette[i].green_val, palette[i].blue_val);
-
+//	printw("     ", palette[i].red_val, palette[i].green_val, palette[i].blue_val);
+	
 	refresh();
 	attroff(COLOR_PAIR(i));
 
@@ -176,8 +176,9 @@ void generate_palette(PIXEL *palette) {
 	}
     }
 
-    
-    getchar();    
+    getchar();
+    erase();
+    refresh();
 }
 
 void setup_ncurses(WINDOW* win, int height, int width) {
@@ -223,12 +224,12 @@ int set_color_and_update_cursor(WINDOW* img_win, int color_pair, int pixels_affe
     getmaxyx(img_win, y_max, x_max);
 
     int cells_affected = pixels_affected * CHARS_PER_PIXEL;
-///    wchgat(img_win, CHARS_PER_PIXEL, 0, color_pair, NULL);
 
     // TODO: might need to handle case where run-length packet
     // overflows across line
     wchgat(img_win, cells_affected, 0, color_pair, NULL);
     usleep(10000);
+
     // adjust cursor and move to next row if x_pos exceeds image width    
     x_pos += cells_affected;
     if (x_pos >= x_max) {
@@ -245,28 +246,32 @@ int set_color_and_update_cursor(WINDOW* img_win, int color_pair, int pixels_affe
     // FIXME: need to adjust return value so that the loop stops correctly
 }
 
-int display_run_length_packet(WINDOW* img_win, FILE* file, int repetition_count) {
+int display_run_length_packet(WINDOW* img_win, FILE* file, int repetition_count, PIXEL* palette) {
     PIXEL pixel;
     fread(&pixel, sizeof(uint8_t), sizeof(PIXEL), file);    
-    int pair_num = initialize_color(pixel.red_val,
-				    pixel.green_val,
-				    pixel.blue_val);
+    int pair_num = get_nearest_color_pair(palette,
+					  pixel.red_val,
+					  pixel.green_val,
+					  pixel.blue_val,
+					  NULL);
 
     int8_t ret = set_color_and_update_cursor(img_win, pair_num, repetition_count);
     wrefresh(img_win);
     return ret;
 }
 
-int display_raw_rgb_packet(WINDOW* img_win, FILE *file, int pixel_count) {
+int display_raw_rgb_packet(WINDOW* img_win, FILE *file, int pixel_count, PIXEL* palette) {
     int ret = 0;
     for (; pixel_count > 0; pixel_count--) {
 	PIXEL pixel;
 	fread(&pixel, sizeof(uint8_t), sizeof(PIXEL), file);
 
-	int pair_num = initialize_color(pixel.red_val,
-					pixel.green_val,
-					pixel.blue_val);
-	
+	int pair_num = get_nearest_color_pair(palette,
+					  pixel.red_val,
+					  pixel.green_val,
+					  pixel.blue_val,
+					  NULL);
+
 	ret = set_color_and_update_cursor(img_win, pair_num, 1);
 	usleep(5000);
 	wrefresh(img_win);	
@@ -274,16 +279,16 @@ int display_raw_rgb_packet(WINDOW* img_win, FILE *file, int pixel_count) {
     return ret;
 }
 
-int display_image_data(WINDOW* img_win, FILE* file, PACKET_INFO packet_info) {
+int display_image_data(WINDOW* img_win, FILE* file, PACKET_INFO packet_info, PIXEL* palette) {
     switch (packet_info.type) {
 	case RUNLEN:
-	    return display_run_length_packet(img_win, file, packet_info.count);
+	    return display_run_length_packet(img_win, file, packet_info.count, palette);
 	case RAW:
-	    return display_raw_rgb_packet(img_win, file, packet_info.count);
+	    return display_raw_rgb_packet(img_win, file, packet_info.count, palette);
     }
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[]) {    
     if (argc < 2) {
 	printf("ERR: No Filename Specified\n");
 	return 1;
@@ -326,11 +331,6 @@ int main(int argc, char* argv[]) {
 	       "your terminal might not be able to display the entire image!\n");
     }
 
-    if (tga_header.height * tga_header.width > 256) {
-	printf("WARNING: Images containing >256 pixels are currently unsupported, "
-	       "displayed image may be mangled!!\n");
-    }
-    
     printf("Press enter to continue...");
     getchar();
 
@@ -340,22 +340,27 @@ int main(int argc, char* argv[]) {
     curs_set(0);
     start_color();
 
-    init_pair(1, COLOR_WHITE, COLOR_WHITE);
+    // generate fixed 256-color palette
+    PIXEL palette[256];
+    generate_palette(palette);
+
+//    get_nearest_color_pair(palette, 2, 0, 0, NULL);
+    getchar();
+    
+    init_pair(0, 0, 0);
+    attron(COLOR_PAIR(1));
     refresh();
     
     WINDOW *img_win = newwin(tga_header.height, tga_header.width << 1, 0, 0);
     WINDOW *log_win = newwin(tga_header.height, 50, 0, (tga_header.width << 1) + 1);
+
     scrollok(log_win, 1);
     
     wbkgd(img_win, ' ' | A_REVERSE);
     wrefresh(img_win);
 
     /***** Begin Output *****/
-
-    // generate fixed 256-color palette
-    PIXEL palette[256];
-    generate_palette(palette);
-
+    
     // image data begins in the bottom left corner, move the cursor to match
     wmove(img_win, tga_header.height-1, 0);
        
@@ -385,7 +390,7 @@ int main(int argc, char* argv[]) {
 	    };
 	}
 
-	finished_flag = display_image_data(img_win, file, pkt_info);
+	finished_flag = display_image_data(img_win, file, pkt_info, palette);
     }
     
     fclose(file);
