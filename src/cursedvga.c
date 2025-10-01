@@ -358,8 +358,8 @@ int main(int argc, char* argv[]) {
 		.count = header_byte + 1
 	    };
 	}
-
-	finished_flag = display_image_data(img_win, file, pkt_info, palette);
+        
+        finished_flag = display_image_data(img_win, file, pkt_info, palette);
     }
     
     fclose(file);
