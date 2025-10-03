@@ -1,4 +1,4 @@
 cursedvga: cursedvga.o
-	gcc -o cursedvga cursedvga.o -lncurses
+	gcc -o ../cursedvga cursedvga.o -lncurses
 
-clean: ; rm cursedvga cursedvga.o
+clean: ; rm ../cursedvga cursedvga.o
