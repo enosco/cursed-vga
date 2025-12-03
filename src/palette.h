@@ -3,23 +3,27 @@
 
 #include "tga.h"
 
-enum PALETTE_TYPE {
-    TERM_DEFAULT,
-    COMPRESSED_248,
-    COMPRESSED_216,
-    COMPRESSED_128,
-    COMPRESSED_64,
-    COMPRESSED_32,
-    COMPRESSED_16,
+enum PALETTE_SIZE {
+    COMPRESSED_248 = 248, // 256 minus 8 to preserve default colors
+    COMPRESSED_216 = 216,
+    COMPRESSED_128 = 128,
+    COMPRESSED_64  = 64,
+    COMPRESSED_32  = 32,
+    COMPRESSED_16  = 16,
 };
 
-enum GENERATION_TYPE {
+enum GENERATION_METHOD {
+    COLOR_CUBE,
     FIRST_COLORS_FOUND,
-    MOST_COMMON_COLOR,
+    MOST_COMMON_COLORS,
+    K_MEANS_CLUSTERING,
 };
 
-PIXEL* generate_palette(enum PALETTE_TYPE palette_type,
-                        enum GENERATION_TYPE gen_type,
-                        PIXEL* pixel_data);
+typedef struct {
+    enum PALETTE_SIZE size;
+    PIXEL* data;
+} PALETTE;
+
+void generate_palette(PALETTE* palette_data);
 
 #endif

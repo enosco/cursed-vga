@@ -22,14 +22,6 @@ void parse_raw_packet(PIXEL* pixmap, uint64_t insert_index, uint8_t packet_pixel
     }
 }
 
-
-// idea, for efficiency, no copies, just set the pixel pointer at each index to the
-// pixel's location in the bytestream
-// NOTE: this will tie the returned pixmap to the lifetime of the bytestream.
-// would copying be better? test efficency difference later
-
-// TODO: consider another struct that contains both the pixels and the header?
-// want to return an array of pixels, might be better to ignore run-length for simplicity?
 void parse_tga(PIXEL* pixel_data, const void* bytestream)
 {
     uint8_t* stream_pos = (uint8_t*) bytestream + sizeof(TARGA_HEADER);
@@ -55,7 +47,7 @@ void parse_tga(PIXEL* pixel_data, const void* bytestream)
 
         insert_index += pixel_count;
     }
-    
+
 }
 
 TARGA_HEADER parse_header(const void* bytestream)
