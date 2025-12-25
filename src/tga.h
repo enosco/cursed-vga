@@ -7,18 +7,18 @@
  * Header of a TARGA file in order of each field
  */
 typedef struct __attribute__((packed)) {
-  uint8_t id_len;
-  uint8_t color_map_type;
-  uint8_t image_type;
-  uint16_t color_map_origin;
-  uint16_t color_map_len;
-  uint8_t color_map_entry_size;
-  uint16_t x_orig;
-  uint16_t y_orig;
-  uint16_t width;
-  uint16_t height;
-  uint8_t pixel_depth;
-  uint8_t img_desc_byte;
+    uint8_t id_len;
+    uint8_t color_map_type;
+    uint8_t image_type;
+    uint16_t color_map_origin;
+    uint16_t color_map_len;
+    uint8_t color_map_entry_size;
+    uint16_t x_orig;
+    uint16_t y_orig;
+    uint16_t width;
+    uint16_t height;
+    uint8_t pixel_depth;
+    uint8_t img_desc_byte;
 } TARGA_HEADER;
 
 /*
@@ -26,9 +26,9 @@ typedef struct __attribute__((packed)) {
  * order and bits used by a TARGA file using 24-bit color.
  */
 typedef struct __attribute__((packed)) {
-  uint8_t blue_val;
-  uint8_t green_val;
-  uint8_t red_val;
+    uint8_t blue_val;
+    uint8_t green_val;
+    uint8_t red_val;
 } PIXEL;
 
 /*
@@ -38,6 +38,9 @@ enum PACKET_TYPE {
     RAW,
     RUNLEN
 };
+
+// TODO: make extern later
+static const char* const TGA_SIGNATURE = "TRUEVISION-XFILE";
 
 // bytestream represents an array of bytes formatted like a TGA file
 void parse_tga(PIXEL* pixel_data, const void* bytestream);
