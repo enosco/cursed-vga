@@ -6,12 +6,8 @@
 #include "palette.h"
 #include "tga.h"
 
-void test(PALETTE* p)
+int main(int argc, char *argv[])
 {
-    p->size = COMPRESSED_128;
-}
-
-int main(int argc, char *argv[]) {
 
     if (argc < 2) {
         printf("ERR: No Filename Specified\n");
@@ -41,16 +37,15 @@ int main(int argc, char *argv[]) {
     printf("\nPress enter to display...");
     getchar();
 
+
     uint64_t total_pixels = header.height * header.width;
     PIXEL* pixel_data = malloc(total_pixels * sizeof(PIXEL));
     parse_tga(pixel_data, bytestream);
-
     free(bytestream);
 
     PALETTE color_palette;
     color_palette.data = malloc(COMPRESSED_216 * sizeof(PIXEL));
     generate_palette(&color_palette);
-
     initialize_UI();
 
     initialize_palette(&color_palette);
@@ -59,6 +54,5 @@ int main(int argc, char *argv[]) {
     getchar();
 
     end_UI();
-
     return 0;
 }
