@@ -116,7 +116,6 @@ void display_image(TARGA_HEADER header, PIXEL* pixel_data)//, PALETTE* color_pal
     refresh();
     wrefresh(img_win);
 
-
     int pixel_pos = 0;
     for (int row = 0; row < (header.height / 2); row++) {
         for (int col = 0; col < header.width; col++) {
