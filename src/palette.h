@@ -14,9 +14,13 @@ enum PALETTE_SIZE {
 
 enum GENERATION_METHOD {
     COLOR_CUBE,
-    FIRST_COLORS_FOUND,
-    MOST_COMMON_COLORS,
-    K_MEANS_CLUSTERING,
+    UNIFORM,
+    POPULARITY,
+    MEDIAN_CUT,
+    OCTREE,
+    K_MEANS,
+    FIRST_COLORS_FOUND
+    //MOST_COMMON_COLORS,
 };
 
 typedef struct {
@@ -24,6 +28,9 @@ typedef struct {
     PIXEL* data;
 } PALETTE;
 
-void generate_palette(PALETTE* palette_data);
+void generate_palette(PALETTE* palette,
+                      const IMAGE* image,
+                      enum PALETTE_SIZE size,
+                      enum GENERATION_METHOD gen_method);
 
 #endif

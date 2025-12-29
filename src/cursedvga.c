@@ -41,9 +41,15 @@ int main(int argc, char *argv[])
     parse_tga(pixel_data, bytestream);
     free(bytestream);
 
+    // bundle everything together
+    IMAGE image = (IMAGE) {
+        header,
+        pixel_data
+    };
+
     PALETTE color_palette;
-    color_palette.data = malloc(COMPRESSED_216 * sizeof(PIXEL));
-    generate_palette(&color_palette);
+
+    generate_palette(&color_palette, &image, COMPRESSED_216, FIRST_COLORS_FOUND);
     initialize_UI();
 
     initialize_palette(&color_palette);

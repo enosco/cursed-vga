@@ -31,6 +31,11 @@ typedef struct __attribute__((packed)) {
   uint8_t red_val;
 } PIXEL;
 
+typedef struct {
+    TARGA_HEADER header;
+    PIXEL* data;
+} IMAGE;
+
 /*
  * enums for the two types of pixel packet present in a TARGA file
  */
