@@ -40,11 +40,13 @@ void gp_color_cube(PALETTE* palette)
 }
 
 // TODO: move these utility functions to their own file
+// also, modifying the amount bit shifted could be a
+// TUI element in the future
 int pixels_equal(PIXEL a, PIXEL b)
 {
-    return a.red_val == b.red_val
-    && a.green_val == b.green_val
-    && a.blue_val == b.blue_val;
+    return a.red_val >> 4 == b.red_val >> 4
+    && a.green_val >> 4 == b.green_val >> 4
+    && a.blue_val >> 4 == b.blue_val >> 4;
 }
 
 // returns -1 if not inserted
@@ -61,11 +63,9 @@ int put_if_absent(PALETTE* palette, PIXEL new_pixel, int num_elems)
 
 void gp_first_colors(PALETTE* palette, const IMAGE* image)
 {
+    int total_pixels = image->header.height * image->header.width;
     int num_elems = 0;
-    for (int img_index = 0; img_index < palette->size && num_elems < palette->size; img_index++) {
-        // grab current pixel
-        // put if absent in palette
-        // repeat until palette is full
+    for (int img_index = 0; img_index < total_pixels && num_elems < palette->size; img_index++) {
         PIXEL p = image->data[img_index];
         if (put_if_absent(palette, p, num_elems) != -1) {
             num_elems++;
