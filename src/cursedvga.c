@@ -8,19 +8,6 @@
 #include "palette.h"
 #include "tga.h"
 
-int validate_file(FILE* file)
-{
-    fseek(file, 0, SEEK_END - 2);
-    
-    char* signature;
-    fread(signature, sizeof(char), strlen(TGA_SIGNATURE), file);
-    
-    printf("%s", signature);
-
-    return 1;
-
-}
-
 int main(int argc, char *argv[])
 {
     initialize_UI();
@@ -44,9 +31,7 @@ int main(int argc, char *argv[])
     }
 
     end_UI();
-    
-
-    /*
+/*
     if (argc < 2) {
         printf("ERR: No Filename Specified\n");
         return 1;
@@ -78,43 +63,17 @@ int main(int argc, char *argv[])
     uint64_t total_pixels = header.height * header.width;
     PIXEL* pixel_data = malloc(total_pixels * sizeof(PIXEL));
     parse_tga(pixel_data, bytestream);
-
     free(bytestream);
 
+    // bundle everything together
+    IMAGE image = (IMAGE) {
+        header,
+        pixel_data
+    };
+    
     PALETTE color_palette;
-    color_palette.data = malloc(COMPRESSED_216 * sizeof(PIXEL));
-    generate_palette(&color_palette);
 
-    init_UI()
-
-    while (1) {
-        navigate_UI();
-        
-        if (program exit flag) {
-            break
-        }
-
-        get_status_flags()
-
-        if (filepath flag) {
-            read in file
-        } else if (color count flag) {
-            call function to grab new color count
-        } else if (palette generation flag) {
-            grab new generation mode
-        } else if (render mode flag) {
-            grab new render mode
-        }
-
-        if (all four are active (path, count, pal_gen, render_mode)) {
-            display image
-        }
-    }
-
-    end_UI()
-    */
-
-    /*
+    generate_palette(&color_palette, &image, COMPRESSED_216, FIRST_COLORS_FOUND);
     initialize_UI();
 
 
@@ -125,5 +84,6 @@ int main(int argc, char *argv[])
 
     end_UI();
     */
+
     return 0;
 }

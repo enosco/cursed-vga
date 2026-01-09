@@ -1,3 +1,16 @@
+<<<<<<< HEAD
+||||||| 895d5f3
+#include <ncurses.h>
+
+=======
+#define _XOPEN_SOURCE_EXTENDED
+
+#include <ncurses.h>
+#include <wchar.h>
+#include <wctype.h>
+#include <locale.h>
+
+>>>>>>> origin
 #include "UI.h"
 
 #include <stdlib.h>
@@ -149,6 +162,8 @@ uint8_t navigate_UI()
 /*
 void initialize_UI()
 {
+    setlocale(LC_ALL, "");
+
     initscr();
     curs_set(0);
     start_color();
@@ -172,7 +187,7 @@ int square(int val)
     return val*val;
 }
 
-int get_dist_squared(PIXEL rgb1, PIXEL rgb2)
+int dist_squared(PIXEL rgb1, PIXEL rgb2)
 {
     return square(rgb2.red_val - rgb1.red_val)
     + square(rgb2.green_val - rgb1.green_val)
@@ -180,7 +195,7 @@ int get_dist_squared(PIXEL rgb1, PIXEL rgb2)
 
 }
 
-int get_closest_color_pair(PIXEL target_color)
+int find_nearest_color(PIXEL target_color)
 {
     // TODO: this can be optimized later, just get it working for now
     int closest_index = 0;
@@ -189,61 +204,97 @@ int get_closest_color_pair(PIXEL target_color)
     for (int i = 0; i < curr_color_palette->size; i++) {
         int curr_dist;
         PIXEL curr_color = curr_color_palette->data[i];
-        if ((curr_dist = get_dist_squared(target_color, curr_color)) < shortest_dist) {
+        if ((curr_dist = dist_squared(target_color, curr_color)) < shortest_dist) {
             closest_index = i;
             shortest_dist = curr_dist;
         }
     }
+    return closest_index + NCURSES_COLOR_OFFSET;
+}
 
-    refresh();
-    return closest_index + NCURSES_PAIR_OFFSET;
+// Returns the color pair number matching the given fg & bg combination.
+// Pair number will be negative if the inverse of the color exists.
+// Allocates a new color pair if neither this combination nor the inverse already
+// exists.
+int find_nearest_pair(uint8_t fg, uint8_t bg)
+{
+    int pair_num;
+
+    // check if inverse pair exists before attempting to create a new pair
+    if ((pair_num = find_pair(bg, fg)) != -1) {
+        return -pair_num;
+    } else {
+        return alloc_pair(fg, bg);
+    }
 }
 
 void initialize_palette(PALETTE* color_palette)
 {
     const double color_scale = 1000.0 / 255.0;
-
     for (int i = 0; i < color_palette->size; i++) {
         PIXEL curr = color_palette->data[i];
         init_color(i + NCURSES_COLOR_OFFSET,
                    curr.red_val * color_scale,
                    curr.green_val * color_scale,
                    curr.blue_val * color_scale);
-
-        init_pair(i + NCURSES_PAIR_OFFSET,
-                  i + NCURSES_COLOR_OFFSET,
-                  i + NCURSES_COLOR_OFFSET);
     }
+
     curr_color_palette = color_palette;
+}
+
+void display_color_pair(WINDOW* win, int y, int x, uint16_t fg, uint16_t bg)
+{
+    static const wchar_t* half_block = L"\u2580";
+
+    int pair = find_nearest_pair(fg, bg);
+
+    if (pair < 0) {
+        wattr_set(win, A_REVERSE, -pair ,NULL);
+    } else {
+        wattr_set(win, 0, pair, NULL);
+    }
+
+    mvwaddwstr(win, y, x, half_block);
 }
 
 void display_image(TARGA_HEADER header, PIXEL* pixel_data)//, PALETTE* color_palette)
 {
     WINDOW* img_win = newwin(header.height*4, header.width*4, 0, 0);
-    WINDOW* log_win = newwin(64, 32, 0, header.width*2+4);
 
     refresh();
     wrefresh(img_win);
 
-    int total_pixels = header.height * header.width;
-
     int pixel_pos = 0;
-    double COLOR_SCALE = 1000.0 / 255.0;
+    for (int row = 0; row < (header.height / 2); row++) {
+        for (int col = 0; col < header.width; col++) {
+            int top_color = find_nearest_color(pixel_data[pixel_pos]);
+            int bottom_color = find_nearest_color(pixel_data[pixel_pos + header.width]);
 
+            display_color_pair(img_win, row, col, top_color, bottom_color);
 
-    for (int row = header.height-1; row >= 0; row--) {
-        for (int col = 0; col < header.width*2; col+=2) {
+            pixel_pos++;
+        }
+        pixel_pos += header.width;
+    }
 
-            PIXEL curr = pixel_data[pixel_pos++];
+    // If image height is odd, the last row still needs to be printed
+    if (header.height % 2 != 0) {
 
-            int color_pair = get_closest_color_pair(curr);//, color_palette);
-            mvwchgat(img_win, row, col, 2, 0, color_pair, NULL);
+        refresh();
+        int last_index = header.height * header.width;
+        //int row_pos = last_index - header.width;
+
+        for (int col = 0; col < header.width; col++) {
+            int top_color = find_nearest_color(pixel_data[pixel_pos++]);
+
+            display_color_pair(img_win,
+                               header.height / 2,
+                               col,
+                               top_color,
+                               COLOR_BLACK);
         }
     }
 
-    wrefresh(log_win);
     wrefresh(img_win);
-
-    refresh();
 }
 */
