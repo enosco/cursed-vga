@@ -1,26 +1,20 @@
-<<<<<<< HEAD
-||||||| 895d5f3
-#include <ncurses.h>
-
-=======
 #define _XOPEN_SOURCE_EXTENDED
-
-#include <ncurses.h>
-#include <wchar.h>
-#include <wctype.h>
-#include <locale.h>
-
->>>>>>> origin
-#include "UI.h"
 
 #include <stdlib.h>
 #include <string.h>
+
 #include <ncurses.h>
 #include <form.h>
 #include <menu.h>
 
-static const int NCURSES_NEW_PAIR_OFFSET = 2;
-static const int NCURSES_NEW_COLOR_OFFSET = 8;
+#include <wchar.h>
+#include <wctype.h>
+#include <locale.h>
+
+#include "UI.h"
+
+static const int NCURSES_PAIR_OFFSET = 4;
+static const int NCURSES_COLOR_OFFSET = 8;
 
 static const int ACTIVE_UI_ELEM_COLOR_PAIR = 2;
 static const int INVALID_UI_ELEM_COLOR_PAIR = 3;
@@ -47,6 +41,7 @@ FORM_BUNDLE* filepath_bundle;
 
 PALETTE* curr_color_palette;
 
+
 void attach_title_to_win(WINDOW* win, char* text)
 {
     int y,x;
@@ -69,6 +64,7 @@ void initialize_UI()
     // form for file path
     // menu for palette size:
     // menu for palette generation
+    setlocale(LC_ALL, "");
 
     initscr();
     noecho();
@@ -79,6 +75,7 @@ void initialize_UI()
     refresh();
 
     /**** Initialize Filepath Form ****/
+
     filepath_bundle = malloc(sizeof(FORM_BUNDLE));
 
     const int form_win_h = 3;
@@ -146,8 +143,6 @@ enum STATUS_FLAG accept_form_input(FORM_BUNDLE* form_bundle)
     return status;
 }
 
-
-
 uint8_t navigate_UI()
 {
     uint8_t bitflags = 0;
@@ -156,22 +151,6 @@ uint8_t navigate_UI()
     bitflags |= accept_form_input(filepath_bundle);
 
     return bitflags;
-}
-
-
-/*
-void initialize_UI()
-{
-    setlocale(LC_ALL, "");
-
-    initscr();
-    curs_set(0);
-    start_color();
-}
-
-void end_UI()
-{
-    endwin();
 }
 
 int compare_color_hex(PIXEL rgb1, PIXEL rgb2)
@@ -192,7 +171,6 @@ int dist_squared(PIXEL rgb1, PIXEL rgb2)
     return square(rgb2.red_val - rgb1.red_val)
     + square(rgb2.green_val - rgb1.green_val)
     + square(rgb2.blue_val - rgb1.blue_val);
-
 }
 
 int find_nearest_color(PIXEL target_color)
@@ -259,7 +237,7 @@ void display_color_pair(WINDOW* win, int y, int x, uint16_t fg, uint16_t bg)
 
 void display_image(TARGA_HEADER header, PIXEL* pixel_data)//, PALETTE* color_palette)
 {
-    WINDOW* img_win = newwin(header.height*4, header.width*4, 0, 0);
+    WINDOW* img_win = newwin(header.height*4, header.width*4, 0, 52);
 
     refresh();
     wrefresh(img_win);
@@ -297,4 +275,3 @@ void display_image(TARGA_HEADER header, PIXEL* pixel_data)//, PALETTE* color_pal
 
     wrefresh(img_win);
 }
-*/

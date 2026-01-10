@@ -63,7 +63,7 @@ int put_if_absent(PALETTE* palette, PIXEL new_pixel, int num_elems)
 
 void gp_first_colors(PALETTE* palette, const IMAGE* image)
 {
-    int total_pixels = image->header.height * image->header.width;
+    int total_pixels = image->header->height * image->header->width;
     int num_elems = 0;
     for (int img_index = 0; img_index < total_pixels && num_elems < palette->size; img_index++) {
         PIXEL p = image->data[img_index];

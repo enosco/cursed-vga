@@ -32,7 +32,7 @@ typedef struct __attribute__((packed)) {
 } PIXEL;
 
 typedef struct {
-    TARGA_HEADER header;
+    TARGA_HEADER* header;
     PIXEL* data;
 } IMAGE;
 
@@ -48,7 +48,7 @@ enum PACKET_TYPE {
 static const char* const TGA_SIGNATURE = "TRUEVISION-XFILE";
 
 // bytestream represents an array of bytes formatted like a TGA file
-void parse_tga(PIXEL* pixel_data, const void* bytestream);
-TARGA_HEADER parse_header(const void* bytestream);
+PIXEL* parse_tga(const void* bytestream);
+TARGA_HEADER* parse_header(const void* bytestream);
 
 #endif

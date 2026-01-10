@@ -8,29 +8,97 @@
 #include "palette.h"
 #include "tga.h"
 
+#include <ncurses.h>
+
+// TODO: move these functions into a util file
+int is_whitespace(char c)
+{
+    return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\12';
+}
+
+char* ltrim(char* str)
+{
+    while (*str && is_whitespace(*str)) str++;
+    return str;
+}
+
+char* rtrim(char* str)
+{
+    char* end = str + strlen(str);
+    while(*str && is_whitespace(*--end));
+    *(end+1) = '\0';
+    return str;
+}
+
+char* trim(char* str)
+{
+    return rtrim(ltrim(str));
+}
+
+IMAGE* try_read_image(const char* filepath)
+{
+    if (access(filepath, F_OK) != 0) {
+        return NULL;
+    }
+
+    FILE* file = fopen(filepath, "r");
+
+    fseek(file, 0, SEEK_END);
+    int filesize = ftell(file);
+    rewind(file);
+
+    uint8_t* bytestream = malloc(filesize);
+    fread(bytestream, sizeof(uint8_t), filesize, file);
+    fclose(file);
+
+    TARGA_HEADER* header = parse_header(bytestream);
+
+    uint64_t total_pixels = header->height * header->width;
+    PIXEL* pixel_data = parse_tga(bytestream);
+    free(bytestream);
+
+    // bundle everything together
+    IMAGE* image_data = malloc(sizeof(IMAGE));
+    *image_data = (IMAGE) {
+        header,
+        pixel_data
+    };
+
+    return image_data;
+}
+
 int main(int argc, char *argv[])
 {
     initialize_UI();
-    
-    FILE* file;
 
+    IMAGE* image_data = NULL;
     uint8_t return_bitflags;
+
+    // TODO: clean up where mallocs occur, place them in a consistent, predictable place
     while ((return_bitflags = navigate_UI())) {
         if (return_bitflags & NO_UPDATE) {
             continue;
         }
-
+        // how to indicate a failed read?
+        // want to assign image_data to null;
         if (return_bitflags & FILEPATH_UPDATE) {
-            //file = fopen(get_filepath(), "r");
-            //validate_file(file);
-            printf("%s", get_filepath());
-            if (access(get_filepath(), F_OK) == 0) {
-                printf("file exists");
+            image_data = try_read_image(trim(get_filepath()));
+
+            if (image_data != NULL) {
+                PALETTE color_palette;
+
+                generate_palette(&color_palette, image_data, COMPRESSED_216, COLOR_CUBE);
+
+                // BUG: knife.tga causes "malloc: corrupted top size" when called with FIRST_COLORS_FOUND gen method
+                initialize_palette(&color_palette);
+
+                display_image(*image_data->header, image_data->data);
+                refresh();
             }
         }
     }
-
     end_UI();
+}
 /*
     if (argc < 2) {
         printf("ERR: No Filename Specified\n");
@@ -84,6 +152,3 @@ int main(int argc, char *argv[])
 
     end_UI();
     */
-
-    return 0;
-}
