@@ -7,7 +7,8 @@
 enum STATUS_FLAG {
     EXIT_REQUESTED = 0,
     NO_UPDATE = 1,
-    FILEPATH_UPDATE = 2
+    FILEPATH_UPDATE = 2,
+    PALETTE_GEN_UPDATE = 4,
 };
 
 void initialize_UI();
