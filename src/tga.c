@@ -1,6 +1,5 @@
 #include <stdint.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 
 #include "tga.h"
@@ -29,29 +28,6 @@ PIXEL* parse_tga(const void* bytestream)
     int remaining_pixels = header->height * header->width;
 
     PIXEL* pixel_data = malloc(sizeof(PIXEL) * remaining_pixels);
-
-    /*
-    uint64_t total_pixels = header->height * header->width;
-    uint64_t insert_index = 0;
-    while (insert_index < total_pixels) {
-        uint8_t packet_header = *stream_pos++;
-        uint8_t header_type = packet_header >> 7;
-
-        uint8_t pixel_count;
-        if (header_type == RUNLEN) { // run-length packet
-            pixel_count = (packet_header & 0x7f) + 1;
-
-            parse_run_length_packet(pixel_data, insert_index, pixel_count, stream_pos);
-            stream_pos += sizeof(PIXEL) / sizeof(uint8_t);
-        } else { // raw packet
-            pixel_count = packet_header + 1;
-            parse_raw_packet(pixel_data, insert_index, pixel_count, stream_pos);
-            stream_pos += sizeof(PIXEL) / sizeof(uint8_t) * pixel_count;
-        }
-
-        insert_index += pixel_count;
-    }
-    */
 
     // Insert backwards row-by-row so the result array
     // starts with the top left pixel at index 0
