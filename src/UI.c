@@ -8,10 +8,19 @@
 #include <menu.h>
 
 #include <wchar.h>
-#include <wctype.h>
 #include <locale.h>
 
 #include "UI.h"
+
+/* TODO:
+ * - Add highlighting to selected UI element
+ * - Fix cursor location when selecting form
+ * - Rework bitflags to work with UI element IDs, maybe have functions
+ *   return one or zero if the element has an update, and bitshifting based on
+ *   the elem ID
+ *
+ *
+ */
 
 static const int NCURSES_PAIR_OFFSET = 4;
 static const int NCURSES_COLOR_OFFSET = 8;
@@ -61,28 +70,9 @@ MENU_BUNDLE* palette_size_bundle;
  *                --------
  */
 
-/*
-enum WIDGET_TYPE {
-    MENU_WTYPE,
-    FORM_WTYPE,
-    BUTTON_WTYPE
-};
-
-typedef struct {
-    void* bundle_ptr;
-    enum WIDGET_TYPE type;
-} WIDGET;
-
-#define WIDGET_ROWS_MAX 2
-#define WIDGET_COLS_MAX 3
-WIDGET widget_grid[WIDGET_ROWS_MAX][WIDGET_COLS_MAX];
-*/
-
-// TODO: change this to identify specific UI elements like filepath form,
-// palette menu, etc...
 enum UI_ELEMENT_ID {
-    FILEPATH_FORM = 0,
-    PALETTE_GENERATION_MENU,
+    FILEPATH_FORM = 2,
+    PALETTE_GENERATION_MENU = 4,
 };
 
 typedef struct UI_NODE {
